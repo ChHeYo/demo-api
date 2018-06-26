@@ -4,6 +4,8 @@ const knex = require("knex");
 const bodyParser = require("body-parser");
 
 const db = knex({
+    // **************** IMPORTANT ***************//
+    // USE ENV_VARIABLES FOR THE INFORMATION BELOW!!!!! //
     client: "mysql",
     connection: {
         host : 'aws-us-east-1-portal.28.dblayer.com',
@@ -58,17 +60,7 @@ app.get("/trades/:firstKeyword", (req, res)=>{
         if(data.length){
             res.json(data);
         } else {
-            // db.distinct("descriptionL2").from("vw_naics")
-            // .then(defaultData => {
-            //     if (defaultData.length){
-            //         res.json(defaultData)
-            //     } else {
-                    res.status(400).json("Not Found")
-            //     }
-            // })
-            .catch(err => {
-                res.status(400).json("Not Found");
-            })
+            res.status(400).json("Not Found")
         }
     })
     .catch(err => {
@@ -90,13 +82,18 @@ app.get("/products", (req, res)=>{
     })
 })
 
-
 app.get("/result/:naics/:products/:state", (req, res) => {
     const { naics, products, state } = req.params;
-    db.raw(`CALL sp_check_eligibility(${naics}, ${products}, '${state}')`)
+    let productArray = products.split(",").map(function(item){
+        return parseInt(item);
+    })
+    db.select('*').from('vw_check_eligibility')
+    .where('naics', '=', `${naics}`)
+    .where('stateList', 'like', `%${state}%`)
+    .whereIn('productID', productArray)
     .then(data => {
         if(data.length){
-            res.json(data[0][0]);
+            res.json(data);
         } else {
             res.status(400).json("Not Found");
         }
@@ -105,7 +102,6 @@ app.get("/result/:naics/:products/:state", (req, res) => {
         res.status(400).json("Not Found");
     })
 })
-
 
 app.listen(3000, ()=>{
     console.log('App is running on port 3000');
