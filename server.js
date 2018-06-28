@@ -8,11 +8,11 @@ const db = knex({
     // USE ENV_VARIABLES FOR THE INFORMATION BELOW!!!!! //
     client: "mysql",
     connection: {
-        host : 'aws-us-east-1-portal.28.dblayer.com',
-        port : 25338,
-        user : 'webuser',
-        password : 'gOAKroj4s9R2IaeuYw',
-        database : 'mydb'
+        host : process.env.HOST,
+        port : process.env.PORT,
+        user : process.env.USER,
+        password : process.env.PASSWORD,
+        database : process.env.DB
     }
 })
 
@@ -82,6 +82,26 @@ app.get("/products", (req, res)=>{
     })
 })
 
+app.get("/getproducts/:products", (req, res)=>{
+    const { products } = req.params;
+    let productArray = products.split(",").map(function(item){
+        return parseInt(item);
+    })
+    console.log(productArray);
+    db.select('ID', 'type', 'subType').from("product_types")
+    .whereIn("ID", productArray)
+    .then(data => {
+        if(data.length){
+            res.json(data);
+        } else {
+            res.status(400).json("Not Found");
+        }
+    })
+    .catch(err => {
+        res.status(400).json("Not Found");
+    })
+});
+
 app.get("/result/:naics/:products/:state", (req, res) => {
     const { naics, products, state } = req.params;
     let productArray = products.split(",").map(function(item){
@@ -103,6 +123,6 @@ app.get("/result/:naics/:products/:state", (req, res) => {
     })
 })
 
-app.listen(3000, ()=>{
-    console.log('App is running on port 3000');
+app.listen(process.env.PORT, ()=>{
+    console.log(`App is running on port ${process.env.PORT}`);
 })
